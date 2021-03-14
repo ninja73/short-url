@@ -8,8 +8,6 @@ object store {
   type Short = String
   type TargetURL = String
 
-  final case class InMemoryStore(var data: Map[Short, TargetURL])
-
   trait Store[F[_]] {
     def lookup(short: Short): F[_]
 
@@ -20,6 +18,7 @@ object store {
     def apply[F[_], S](implicit DS: Store[F]): Store[F] = DS
   }
 
+  final case class InMemoryStore(var data: Map[Short, TargetURL])
 
   implicit class StoreFutureOps(state: InMemoryStore)(implicit ec: ExecutionContext) extends Store[Future] {
     override def lookup(short: Short): Future[Option[TargetURL]] = {
