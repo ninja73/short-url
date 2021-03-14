@@ -4,15 +4,15 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.server.{Directives, Route}
 import akka.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
-import url.short.store.store.InMemoryState
+import url.short.store.store.Store
 
-import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.language.implicitConversions
 
 final case class TargetURL(url: String)
 
-class ShortRoute(storage: InMemoryState)(implicit actorSystem: ActorSystem)
+class ShortRoute()(implicit actorSystem: ActorSystem, storage: Store[Future])
   extends Directives with LazyLogging {
 
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
@@ -23,9 +23,6 @@ class ShortRoute(storage: InMemoryState)(implicit actorSystem: ActorSystem)
 
   val route: Route =
     get {
-      println(storage.add("url", "test1"))
-      println(storage.add("url", "test"))
-      println(storage.lookup("url"))
       complete("result")
     } ~
       post {
@@ -36,5 +33,5 @@ class ShortRoute(storage: InMemoryState)(implicit actorSystem: ActorSystem)
 }
 
 object ShortRoute {
-  def apply(storage: InMemoryState)(implicit system: ActorSystem): ShortRoute = new ShortRoute(storage)
+  def apply()(implicit system: ActorSystem, storage: Store[Future]): ShortRoute = new ShortRoute()
 }

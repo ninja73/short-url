@@ -13,7 +13,7 @@ import url.short.store.store._
 import java.util.concurrent.ConcurrentHashMap
 import scala.collection.concurrent
 import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, ExecutionContext}
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.jdk.CollectionConverters._
 
 object Main extends App with LazyLogging {
@@ -22,9 +22,9 @@ object Main extends App with LazyLogging {
   implicit val dispatcher: ExecutionContext = system.dispatcher
 
   val map: concurrent.Map[String, String] = new ConcurrentHashMap[String, String].asScala
-  val state = InMemoryState(map)
+  implicit val state: Store[Future] = InMemoryStore(map)
 
-  val router = handleExceptions(exceptionHandler)(ShortRoute(state).route)
+  val router = handleExceptions(exceptionHandler)(ShortRoute().route)
   val init = for {
     bind <- Http().newServerAt(Config.webServer.host, Config.webServer.port).bind(router)
   } yield {

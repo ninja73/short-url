@@ -1,39 +1,33 @@
 package url.short.store
 
 import scala.collection.concurrent.Map
+import scala.concurrent.{ExecutionContext, Future}
 
 object store {
 
   type Short = String
   type TargetURL = String
 
-  trait State
+  final case class InMemoryStore(var data: Map[Short, TargetURL])
 
-  final case class InMemoryState(var data: Map[Short, TargetURL]) extends State
+  trait Store[F[_]] {
+    def lookup(short: Short): F[_]
 
-  trait Store[F[_], S <: State] {
-    def lookup(state: S, short: Short): F[String]
-
-    def add(state: S, short: Short, targetUrl: TargetURL): F[_]
+    def add(short: Short, targetUrl: TargetURL): F[_]
   }
 
   object Store {
-    def apply[F[_], S <: State](implicit DS: Store[F, S]): Store[F, S] = DS
+    def apply[F[_], S](implicit DS: Store[F]): Store[F] = DS
   }
 
-  implicit class StoreOps[F[_], S <: State](s: S) {
-    def lookup(short: Short)(implicit DS: Store[F, S]): F[_] = DS.lookup(s, short)
 
-    def add(short: Short, targetUrl: TargetURL)(implicit DS: Store[F, S]): F[_] = DS.add(s, short, targetUrl)
-  }
-
-  implicit object ShortSourceOption extends Store[Option, InMemoryState] {
-    override def lookup(state: InMemoryState, short: Short): Option[TargetURL] = {
-      state.data.get(short)
+  implicit class StoreFutureOps(state: InMemoryStore)(implicit ec: ExecutionContext) extends Store[Future] {
+    override def lookup(short: Short): Future[Option[TargetURL]] = {
+      Future(state.data.get(short))
     }
 
-    override def add(state: InMemoryState, short: Short, targetUrl: TargetURL): Option[TargetURL] = {
-      state.data.putIfAbsent(short, targetUrl)
+    override def add(short: Short, targetUrl: TargetURL): Future[Option[TargetURL]] = {
+      Future(state.data.putIfAbsent(short, targetUrl))
     }
   }
 
