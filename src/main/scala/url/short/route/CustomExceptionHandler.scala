@@ -8,7 +8,7 @@ object CustomExceptionHandler extends LazyLogging {
   implicit def exceptionHandler: ExceptionHandler = ExceptionHandler {
     case e => extractUri { uri =>
       logger.error(s"Something went wrong, route $uri", e)
-      complete(HttpResponse(StatusCodes.InternalServerError, entity = s"Something went wrong, route $uri"))
+      complete(StatusCodes.InternalServerError, s"Something went wrong, route $uri")
     }
   }
 }

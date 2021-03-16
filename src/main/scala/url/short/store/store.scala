@@ -1,32 +1,36 @@
 package url.short.store
 
+import url.short._
+
 import scala.collection.concurrent.Map
 import scala.concurrent.{ExecutionContext, Future}
 
 object store {
-
-  type Short = String
+  type Id = String
   type TargetURL = String
 
   trait Store[F[_]] {
-    def lookup(short: Short): F[_]
+    def get(id: Id): F[Option[TargetURL]]
 
-    def add(short: Short, targetUrl: TargetURL): F[_]
+    def add(id: Id, targetUrl: TargetURL): F[Either[AppError, Id]]
   }
 
   object Store {
-    def apply[F[_], S](implicit DS: Store[F]): Store[F] = DS
+    def apply[F[_]](implicit DS: Store[F]): Store[F] = DS
   }
 
-  final case class InMemoryStore(var data: Map[Short, TargetURL])
+  final case class InMemoryStore(data: Map[Id, TargetURL])
 
   implicit class StoreFutureOps(state: InMemoryStore)(implicit ec: ExecutionContext) extends Store[Future] {
-    override def lookup(short: Short): Future[Option[TargetURL]] = {
-      Future(state.data.get(short))
+    override def get(hash: Id): Future[Option[TargetURL]] = {
+      Future(state.data.get(hash))
     }
 
-    override def add(short: Short, targetUrl: TargetURL): Future[Option[TargetURL]] = {
-      Future(state.data.putIfAbsent(short, targetUrl))
+    override def add(hash: Id, targetUrl: TargetURL): Future[Either[AppError, Id]] = {
+      Future(state.data.putIfAbsent(hash, targetUrl)).map {
+        case Some(v) if v != targetUrl => Left(ConflictUrl(v))
+        case _ => Right(hash)
+      }
     }
   }
 

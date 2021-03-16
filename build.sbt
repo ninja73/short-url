@@ -13,6 +13,7 @@ val AkkaVersion = "2.6.8"
 val AkkaHttpVersion = "10.2.4"
 val AkkaHttpCirceVersion = "1.35.3"
 val CirceVersion = "0.12.3"
+val HashidsScalaVersion = "1.0.3"
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor-typed" % AkkaVersion,
@@ -31,6 +32,8 @@ libraryDependencies ++= Seq(
   "ch.qos.logback" % "logback-classic" % "1.2.3",
   "com.typesafe.scala-logging" %% "scala-logging" % ScalaLoggingVersion
 )
+
+libraryDependencies += "org.hashids" % "hashids" % HashidsScalaVersion
 
 docker / dockerfile := {
   val artifact: File = assembly.value
