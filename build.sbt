@@ -14,6 +14,7 @@ val AkkaHttpVersion = "10.2.4"
 val AkkaHttpCirceVersion = "1.35.3"
 val CirceVersion = "0.12.3"
 val HashidsScalaVersion = "1.0.3"
+val ScalatestVersion = "3.2.6"
 
 //Swagger
 val SwaggerAkkaHttpVersion = "2.4.0"
@@ -32,6 +33,12 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-stream" % AkkaVersion,
   "com.typesafe.akka" %% "akka-http" % AkkaHttpVersion,
   "de.heikoseeberger" %% "akka-http-circe" % AkkaHttpCirceVersion,
+)
+
+libraryDependencies ++= Seq(
+  "org.scalatest" %% "scalatest" % ScalatestVersion % Test,
+  "com.typesafe.akka" %% "akka-stream-testkit" % AkkaVersion,
+  "com.typesafe.akka" %% "akka-http-testkit" % AkkaHttpVersion % Test,
 )
 
 libraryDependencies ++= Seq(

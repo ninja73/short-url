@@ -13,4 +13,5 @@ package object short {
   case class NotFound[T](short: T) extends AppError {
     def message: String = s"Short $short not found"
   }
+
 }

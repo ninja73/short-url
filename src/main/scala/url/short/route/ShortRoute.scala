@@ -8,24 +8,26 @@ import com.typesafe.scalalogging.LazyLogging
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.generic.auto._
 import io.swagger.v3.oas.annotations.enums.ParameterIn
-import io.swagger.v3.oas.annotations.{Operation, Parameter}
 import io.swagger.v3.oas.annotations.media.{Content, Schema}
 import io.swagger.v3.oas.annotations.parameters.RequestBody
 import io.swagger.v3.oas.annotations.responses.ApiResponse
-import javax.ws.rs.core.{MediaType => JMediaType}
-import javax.ws.rs._
-import url.short.store.store.Store
+import io.swagger.v3.oas.annotations.{Operation, Parameter}
+import url.short.hash.Hash
+import url.short.store.store.{InMemoryStore, Store}
 import url.short.utils
 
+import javax.ws.rs._
+import javax.ws.rs.core.{MediaType => JMediaType}
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.language.implicitConversions
-import scala.util.hashing.MurmurHash3
 import scala.util.{Failure, Success}
 
 final case class TargetURL(url: String)
 
-class ShortRoute()(implicit actorSystem: ActorSystem, storage: Store[Future])
+class ShortRoute(state: InMemoryStore)(implicit actorSystem: ActorSystem,
+                                       storage: Store[String, InMemoryStore, Future],
+                                       hashids: Hash[String])
   extends Directives with LazyLogging {
 
   implicit val dispatcher: ExecutionContextExecutor = actorSystem.dispatcher
@@ -45,13 +47,11 @@ class ShortRoute()(implicit actorSystem: ActorSystem, storage: Store[Future])
     ))
   def lookup: Route = get {
     path(RemainingPath) { shortUrl =>
-      utils.hashUrlDecoder(shortUrl.toString).map(id => {
-        onComplete(storage.get(id)) {
-          case Failure(e) => complete(StatusCodes.InternalServerError, e.getMessage)
-          case Success(None) => complete(StatusCodes.NotFound, s"target url not found for $shortUrl")
-          case Success(Some(targetUrl)) => redirect(targetUrl, StatusCodes.PermanentRedirect)
-        }
-      }).getOrElse(complete(StatusCodes.BadRequest, s"failed decode short $shortUrl"))
+      onComplete(state.get(shortUrl.toString)) {
+        case Failure(e) => complete(StatusCodes.InternalServerError, e.getMessage)
+        case Success(None) => complete(StatusCodes.NotFound, s"target url not found for $shortUrl")
+        case Success(Some(targetUrl)) => redirect(targetUrl, StatusCodes.PermanentRedirect)
+      }
     }
   }
 
@@ -73,9 +73,9 @@ class ShortRoute()(implicit actorSystem: ActorSystem, storage: Store[Future])
       utils.HttpUtils.validateUrl(targetURL.url).fold(
         e => complete(StatusCodes.BadRequest, e.getMessage),
         validUrl =>
-          onComplete(storage.add(MurmurHash3.stringHash(validUrl).toHexString, validUrl)) {
+          onComplete(state.add(validUrl)) {
             case Success(Right(hash)) =>
-              complete(StatusCodes.Created, utils.hashUrlEncoder(hash))
+              complete(StatusCodes.Created, hash)
             case Success(Left(e)) =>
               complete(StatusCodes.Conflict, e.message)
             case Failure(e) =>
@@ -87,5 +87,7 @@ class ShortRoute()(implicit actorSystem: ActorSystem, storage: Store[Future])
 }
 
 object ShortRoute {
-  def apply()(implicit system: ActorSystem, storage: Store[Future]): ShortRoute = new ShortRoute()
+  def apply(state: InMemoryStore)(implicit system: ActorSystem,
+                                  storage: Store[String, InMemoryStore, Future],
+                                  hashids: Hash[String]): ShortRoute = new ShortRoute(state)
 }
