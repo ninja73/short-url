@@ -15,6 +15,18 @@ val AkkaHttpCirceVersion = "1.35.3"
 val CirceVersion = "0.12.3"
 val HashidsScalaVersion = "1.0.3"
 
+//Swagger
+val SwaggerAkkaHttpVersion = "2.4.0"
+val SwaggerVersion = "2.1.7"
+
+libraryDependencies ++= Seq(
+  "javax.ws.rs" % "javax.ws.rs-api" % "2.1.1",
+  "com.github.swagger-akka-http" %% "swagger-akka-http" % SwaggerAkkaHttpVersion,
+  "io.swagger.core.v3" % "swagger-core" % SwaggerVersion,
+  "io.swagger.core.v3" % "swagger-annotations" % SwaggerVersion,
+  "io.swagger.core.v3" % "swagger-models" % SwaggerVersion,
+)
+
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor-typed" % AkkaVersion,
   "com.typesafe.akka" %% "akka-stream" % AkkaVersion,
@@ -34,6 +46,7 @@ libraryDependencies ++= Seq(
 )
 
 libraryDependencies += "org.hashids" % "hashids" % HashidsScalaVersion
+
 
 docker / dockerfile := {
   val artifact: File = assembly.value

@@ -9,8 +9,9 @@ import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
 import url.short.config.Config
 import url.short.route.CustomExceptionHandler._
-import url.short.route.ShortRoute
+import url.short.route.{ShortRoute, SwaggerUIRoute}
 import url.short.store.store._
+import url.short.swagger.SwaggerDoc
 
 import scala.collection.concurrent
 import scala.concurrent.duration.Duration
@@ -25,7 +26,12 @@ object Main extends App with LazyLogging {
   val map: concurrent.Map[Id, String] = new ConcurrentHashMap[Id, String].asScala
   implicit val state: Store[Future] = InMemoryStore(map)
 
-  val router = handleExceptions(exceptionHandler)(ShortRoute().route)
+
+  val router = handleExceptions(exceptionHandler)(
+    new SwaggerDoc(Config.webServer).routes ~
+      SwaggerUIRoute.route ~
+      ShortRoute().route)
+
   val init = for {
     bind <- Http().newServerAt(Config.webServer.host, Config.webServer.port).bind(router)
   } yield {
