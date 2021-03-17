@@ -17,3 +17,10 @@ class HashIds(h: Hashids) extends Hash[String] {
 
   override def hashUrlEncoder(in: String): String = h.encodeHex(in)
 }
+
+
+class HashIdsLong(h: Hashids) extends Hash[Long] {
+  override def hashUrlDecoder(short: String): Option[Long] = h.decode(short).headOption
+
+  override def hashUrlEncoder(in: Long): String = h.encode(in)
+}

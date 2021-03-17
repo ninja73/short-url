@@ -14,4 +14,8 @@ package object short {
     def message: String = s"Short $short not found"
   }
 
+  case object Unreachable extends AppError {
+    def message: String = s"Unreachable"
+  }
+
 }

@@ -1,5 +1,7 @@
 package url.short.store
 
+import java.util.concurrent.atomic.AtomicLong
+
 import url.short._
 import url.short.hash.Hash
 
@@ -39,6 +41,27 @@ object store {
           state.data.putIfAbsent(id, targetUrl) match {
             case Some(v) if v != targetUrl => Left(ConflictUrl(v))
             case _ => Right(id)
+          }
+        )
+    }
+  }
+
+  final case class InMemoryExactStore(ids: AtomicLong, data: Map[String, String])
+
+  implicit val StoreExactFutureOps: Store[Long, InMemoryExactStore, Future] = new Store[Long, InMemoryExactStore, Future] {
+    override def get(state: InMemoryExactStore, id: String)(implicit hash: Hash[Long]): Future[Option[String]] = {
+      Future(state.data.get(id))
+    }
+
+    override def add(state: InMemoryExactStore, targetUrl: String)(implicit hash: Hash[Long]): Future[Either[AppError, String]] = {
+      Future(hash.hashUrlEncoder(state.ids.getAndIncrement()))
+        .map(id =>
+          state.data.synchronized {
+            state.data.find { case (_, v) => v == targetUrl } match {
+              case Some((k, _)) => Right(k)
+              case None =>
+                state.data.put(id, targetUrl).map(k => Right(k)).getOrElse(Left(Unreachable))
+            }
           }
         )
     }
